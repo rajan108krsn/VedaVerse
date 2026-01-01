@@ -4,6 +4,7 @@ import helmet from "helmet";
 import morgan from "morgan";
 
 import authRoutes from "./routes/authRoutes.js";
+import globalErrorHandler from "./middlewares/globalErrorHandler.js";
 // import templeRoutes from "./routes/templeRoutes.js";
 // import leelaRoutes from "./routes/leelaRoutes.js";
 // import bhaktaRoutes from "./routes/bhaktaRoutes.js";
@@ -22,5 +23,5 @@ app.use("/api/auth", authRoutes);
 // app.use("/api/leelas", leelaRoutes);
 // app.use("/api/bhaktas", bhaktaRoutes);
 // app.use("/api/community", communityRoutes);
-
+app.use(globalErrorHandler);
 export default app;

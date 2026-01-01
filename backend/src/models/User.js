@@ -1,59 +1,107 @@
-//name,email pass phone no 
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
 const userSchema = new mongoose.Schema({
-    name: {
-        type: String,
-        maxlength:[50],
-        minlength:[3],
-        trim: true,
-        required: true
-    },
-    email:{
-        type: String,
-        unique: true,
-        trim: true,
-        required: true,
-        lowercase: true
-    },
-    password:{
-        type: String,
-        minlength:[8],
-        trim: true,
-        required: true
-    },
-    role:{
-        type: String,
-        enum:['admin','user'],
-        default: 'user'
-    },
-    phoneno: {
-        type: String,
-        required: true,
-        unique: true
-    },
-    active:{
-        type: Boolean,
-        default: true
-    }
-},{timestamp: true})
+  name: {
+    type: String,
+    trim: true,
+    required: true,
+    minlength: [3, "Name must be at least 3 characters"],
+    maxlength: [50, "Name cannot exceed 50 characters"]
+  },
 
-//Hash Password
-userSchema.pre("save",async function(next){
-    if(!this.isModified("password")) return next();
-    this.password = await bcrpyt.hash(this.password,12);
-    next();
-})
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    lowercase: true,
+    trim: true,
+    match: [/^\S+@\S+\.\S+$/, "Please enter a valid email"]
+  },
 
-//Compare
-userSchema.methods.comparePass = async function(enteredPass) {
-    return await bcrypt.compare(enteredPass,this.password);
-}
+  password: {
+    type: String,
+    required: true,
+    minlength: [8, "Password must be at least 8 characters"],
+    select: false
+  },
 
-//Generate Token
+  role: {
+    type: String,
+    enum: ["admin", "user"],
+    default: "user"
+  },
+
+  mobileno: {
+    type: String,
+    required: true,
+    unique: true,
+    match: [/^[0-9]{10}$/, "Please enter a valid mobile number"]
+  },
+  refreshToken: {
+    type: String
+  },
+  active: {
+    type: Boolean,
+    default: true
+  }
+}, { timestamps: true });
 
 
-const User = mongoose.model("User",userSchema);
+// Hash password  
+// Tum async function (next) use kar rahe ho.
+// 👉 Mongoose rule:
+// Agar function async hai → next automatically pass nahi hota
+// Agar next chahiye → function async nahi honi chahiye
+
+// Hash password (FIXED)
+userSchema.pre("save", async function () {
+  console.log("pre save hoon");
+  if (!this.isModified("password")) return;
+  this.password = await bcrypt.hash(this.password, 12);
+});
+
+// userSchema.pre("save", async function () {
+//   if (!this.isModified("password")) return;
+//   this.password = await bcrypt.hash(this.password, 12);
+// });
+// userSchema.pre("save", function (next) {
+//   console.log("pre mein hoon")
+//   if (!this.isModified("password")) return next();
+
+//   bcrypt.hash(this.password, 12)
+//     .then(hash => {
+//       this.password = hash;
+//       next();
+//     })
+//     .catch(err => next(err));
+
+// });
+
+
+// Compare password
+userSchema.methods.comparePass = async function (enteredPass) {
+  return await bcrypt.compare(enteredPass, this.password);
+};
+
+// Generate access token
+userSchema.methods.generateAccessToken = function () {
+  return jwt.sign(
+    { id: this._id, email: this.email },
+    process.env.ACCESS_TOKEN_SECRET,
+    { expiresIn: process.env.ACCESS_TOKEN_EXPIRY }
+  );
+};
+
+// Generate refresh token
+userSchema.methods.generateRefreshToken = function () {
+  return jwt.sign(
+    { id: this._id, email: this.email },
+    process.env.REFRESH_TOKEN_SECRET,
+    { expiresIn: process.env.REFRESH_TOKEN_EXPIRY }
+  );
+};
+
+const User = mongoose.model("User", userSchema);
 export default User;

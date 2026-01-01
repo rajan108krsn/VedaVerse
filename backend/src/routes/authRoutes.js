@@ -1,13 +1,14 @@
 import express from "express";
 import validate from '../middlewares/validateMiddleware.js';
+import {loginUser, registerUser} from '../controllers/authController.js'
 const router = express.Router();
 
-router.post('/register',validate.registerInput,(req,res)=>{
-	res.send("Register Route")
-});
-router.post('/login',validate.loginInput,(req,res)=>{
-	res.send("Log In Route");
-});
+router.post('/register',validate.registerInput, registerUser);
+router.post('/login',validate.loginInput,loginUser);
+
+router.post("/refresh-token", refreshAccessToken);
+
+
 router.post('/logout',(req,res)=>{
 	res.send("Log Out Route")
 });

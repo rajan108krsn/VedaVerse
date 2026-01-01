@@ -1,7 +1,7 @@
 const validate = {
   registerInput: (req, res, next) => {
     const { name, email, password, mobileno } = req.body;
-    const error = {};
+    const error = {}; 
 
     // Name validation
     if (!name || name.trim().length < 3) {
@@ -51,7 +51,8 @@ const validate = {
     }
 
     if (Object.keys(error).length > 0) {
-      console.log(error);
+      console.log("validastion error:",error);
+  
       return res.status(400).json({
         success: false,
         error,
