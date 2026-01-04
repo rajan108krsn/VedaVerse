@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 
 const userSchema = new mongoose.Schema({
   name: {
@@ -45,7 +46,9 @@ const userSchema = new mongoose.Schema({
   active: {
     type: Boolean,
     default: true
-  }
+  },
+  resetPasswordToken: String,
+  resetPasswordExpire: Date,
 }, { timestamps: true });
 
 
@@ -88,7 +91,7 @@ userSchema.methods.comparePass = async function (enteredPass) {
 // Generate access token
 userSchema.methods.generateAccessToken = function () {
   return jwt.sign(
-    { id: this._id, email: this.email },
+    { id: this._id, role: this.role },
     process.env.ACCESS_TOKEN_SECRET,
     { expiresIn: process.env.ACCESS_TOKEN_EXPIRY }
   );
@@ -97,11 +100,25 @@ userSchema.methods.generateAccessToken = function () {
 // Generate refresh token
 userSchema.methods.generateRefreshToken = function () {
   return jwt.sign(
-    { id: this._id, email: this.email },
+    { id: this._id, role: this.role },
     process.env.REFRESH_TOKEN_SECRET,
     { expiresIn: process.env.REFRESH_TOKEN_EXPIRY }
   );
 };
+
+userSchema.methods.createPasswordResetToken = function () {
+  const resetToken = crypto.randomBytes(32).toString("hex");
+
+  this.resetPasswordToken = crypto
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex");
+
+  this.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 min
+
+  return resetToken; // plain token (email me jayega)
+};
+
 
 const User = mongoose.model("User", userSchema);
 export default User;
