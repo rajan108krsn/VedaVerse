@@ -28,4 +28,6 @@ const templeSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+
+
 export default mongoose.model("Temple", templeSchema);

@@ -7,8 +7,9 @@ import authRoutes from "./routes/authRoutes.js";
 import globalErrorHandler from "./middlewares/globalErrorHandler.js";
 import templeRoutes from "./routes/templeRoutes.js";
 // import leelaRoutes from "./routes/leelaRoutes.js";
-// import bhaktaRoutes from "./routes/bhaktaRoutes.js";
+import bhaktaRoutes from "./routes/bhaktaRoutes.js";
 // import communityRoutes from "./routes/communityRoutes.js";
+import communityRoutes from './routes/communityRoutes.js'
 
 const app = express();
 
@@ -28,7 +29,7 @@ app.use("/api/auth", authRoutes);
 
 app.use("/api/temples", templeRoutes);
 // app.use("/api/leelas", leelaRoutes);
-// app.use("/api/bhaktas", bhaktaRoutes);
-// app.use("/api/community", communityRoutes);
+app.use("/api/bhaktas", bhaktaRoutes);
+app.use("/api/community", communityRoutes);
 app.use(globalErrorHandler);
 export default app;

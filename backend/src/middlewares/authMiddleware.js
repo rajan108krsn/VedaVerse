@@ -22,7 +22,7 @@ export const protect = (req, res, next) => {
     id: decoded.id,
     role: decoded.role
     };
-
+    console.log("protect mein");
     next();
   } catch (error) {
     return res.status(401).json({ message: "Invalid or expired access token" });

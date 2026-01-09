@@ -1,14 +1,14 @@
 import express from "express";
 import upload from "../middlewares/multer.js";
 import { protect, restrictTo } from "../middlewares/authMiddleware.js";
-import { createTemple, getAllTemples,getTempleById,updateTemple,deleteTemple,deleteTempleImage } from "../controllers/templeController.js";
+import { createTemple,getAllTemples, getMyTemples,getTempleById,updateTemple,deleteTemple,deleteTempleImage } from "../controllers/templeController.js";
 
 const router = express.Router();
+router.get("/my-temples", protect, getMyTemples); 
 
 router.post(
   "/create",
   protect,
-  restrictTo("admin"),
    upload.array("images", 5),
   createTemple
 );

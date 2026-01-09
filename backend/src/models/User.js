@@ -60,7 +60,6 @@ const userSchema = new mongoose.Schema({
 
 // Hash password (FIXED)
 userSchema.pre("save", async function () {
-  console.log("pre save hoon");
   if (!this.isModified("password")) return;
   this.password = await bcrypt.hash(this.password, 12);
 });

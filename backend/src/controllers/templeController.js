@@ -43,19 +43,68 @@ export const createTemple = catchAsync(async (req, res) => {
   );
 });
 
-
 export const getAllTemples = catchAsync(async (req, res) => {
-  const temples = await Temple.find()
-    .sort({ createdAt: -1 }) // latest first
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const search = req.query.search || "";
+
+  const skip = (page - 1) * limit;
+
+  const query = search
+    ? {
+        $or: [
+          { name: { $regex: search, $options: "i" } },
+          { location: { $regex: search, $options: "i" } },
+        ],
+      }
+    : {};
+
+  const totalTemples = await Temple.countDocuments(query);
+
+  const temples = await Temple.find(query)
+    .populate("createdBy", "name role") // 👈 SAFE populate
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
     .select("-__v");
 
   return res.status(200).json(
     new ApiResponse(200, "Temples fetched successfully", {
-      count: temples.length,
+      page,
+      limit,
+      totalPages: Math.ceil(totalTemples / limit),
+      totalResults: totalTemples,
       temples,
     })
   );
 });
+
+export const getMyTemples = catchAsync(async (req, res) => {
+  const userId = req.user.id;
+
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
+
+  const totalTemples = await Temple.countDocuments({ createdBy: userId });
+
+  const temples = await Temple.find({ createdBy: userId })
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .select("-__v");
+
+  return res.status(200).json(
+    new ApiResponse(200, "My temples fetched successfully", {
+      page,
+      limit,
+      totalPages: Math.ceil(totalTemples / limit),
+      totalResults: totalTemples,
+      temples,
+    })
+  );
+});
+
 
 // GET SINGLE TEMPLE BY ID
 export const getTempleById = catchAsync(async (req, res) => {
@@ -83,6 +132,14 @@ export const updateTemple = catchAsync(async (req, res) => {
   if (!temple) {
     throw new ApiError(404, "Temple not found");
   }
+
+  // ownership check
+if (
+  temple.createdBy.toString() !== req.user.id &&
+  req.user.role !== "admin"
+) {
+  throw new ApiError(403, "You are not allowed to modify this temple");
+}
 
   // 1️⃣ Update text fields if provided
   if (name) temple.name = name;
@@ -121,7 +178,13 @@ export const deleteTemple = catchAsync(async (req, res) => {
   if (!temple) {
     throw new ApiError(404, "Temple not found");
   }
-
+      // ownership check
+if (
+  temple.createdBy.toString() !== req.user.id &&
+  req.user.role !== "admin"
+) {
+  throw new ApiError(403, "You are not allowed to modify this temple");
+}
   // 🔥 Delete images from Cloudinary
   for (const imageUrl of temple.images) {
     const publicId = getPublicIdFromUrl(imageUrl);
@@ -139,8 +202,8 @@ export const deleteTemple = catchAsync(async (req, res) => {
 
 export const deleteTempleImage = catchAsync(async (req, res) => {
   const { id } = req.params;
-  const { imageUrl } = req.body;
-
+  const { imageUrl } = req.query;
+ console.log(imageUrl)
   if (!imageUrl) {
     throw new ApiError(400, "Image URL is required");
   }
