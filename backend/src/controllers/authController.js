@@ -13,6 +13,7 @@ dotenv.config();
 
 export const registerUser = catchAsync(async (req, res) => {
   const { name, email, password, role, mobileno } = req.body;
+  console.log(req.body);
 
   const existingUser = await User.findOne({
     $or: [{ email }, { mobileno }],
@@ -93,6 +94,7 @@ export const loginUser = catchAsync(async (req, res) => {
   return res.status(200).json(
     new ApiResponse(200, "Login successful", {
       accessToken,
+      user
     })
   );
 });
