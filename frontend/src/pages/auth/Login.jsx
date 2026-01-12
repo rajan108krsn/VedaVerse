@@ -1,31 +1,42 @@
 import { useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import image from "../../assets/image1.jpeg";
+import { useDispatch } from "react-redux";
 import { loginUser } from "../../features/auth/authSlice";
+import {useSelector} from 'react-redux';
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import {image} from "../../assets/image1.jpeg"
-export default function Login() {
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
-  const { loading, error } = useSelector((state) => state.auth);
 
+
+export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const {loading,error,isAuthenticated}=useSelector((state)=>state.auth);
+  const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
+  useEffect(() => {
+  if (isAuthenticated) {
+    navigate("/");
+  }
+  }, [isAuthenticated, navigate]);
+
+  const dispatch = useDispatch();
+  const handleSubmit = (e) => {
     e.preventDefault();
     try {
-      await dispatch(loginUser({ email, password })).unwrap();
-      navigate("/");
-    } catch (err) {
-      console.error(err);
+      console.log({ email, password });
+      dispatch(loginUser({email,password}));
+      
+    } catch (error) {
+      console.error("Login failed:", error);
     }
   };
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-green-900">
+    <div className="min-h-screen w-screen flex items-center justify-center bg-green-900">
+      
+      {/* CARD */}
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 overflow-hidden">
-        
-        {/* LEFT - LOGIN FORM */}
+
+        {/* LEFT - FORM */}
         <div className="p-10 flex flex-col justify-center">
           <h2 className="text-3xl font-bold mb-2">
             Welcome back 👋
@@ -34,19 +45,13 @@ export default function Login() {
             Please enter your details
           </p>
 
-          {/* ERROR */}
-          {error && (
-            <p className="text-red-500 text-sm mb-4">
-              {error.message || "Login failed"}
-            </p>
-          )}
-
-          {/* FORM */}
           <form onSubmit={handleSubmit} className="space-y-4">
+
             <input
               type="email"
               placeholder="Email"
-              className="w-full px-4 py-3 border rounded-full focus:outline-none focus:ring-2 focus:ring-orange-400"
+              className="w-full px-4 py-3 border rounded-full 
+              focus:outline-none focus:ring-2 focus:ring-orange-400"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -55,7 +60,8 @@ export default function Login() {
             <input
               type="password"
               placeholder="Password"
-              className="w-full px-4 py-3 border rounded-full focus:outline-none focus:ring-2 focus:ring-orange-400"
+              className="w-full px-4 py-3 border rounded-full 
+              focus:outline-none focus:ring-2 focus:ring-orange-400"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -74,9 +80,10 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-full font-semibold transition"
+              className="w-full bg-orange-500 hover:bg-orange-600 
+              text-white py-3 rounded-full font-semibold transition"
             >
-              {loading ? "Logging in..." : "Log in"}
+              {loading ? "Logging in..." : "Log In"}
             </button>
           </form>
 
@@ -89,13 +96,21 @@ export default function Login() {
         </div>
 
         {/* RIGHT - IMAGE */}
-        <div className="hidden md:block">
-          <img 
+        <div className="bg-amber-100 relative">
+          <img
             src={image}
             alt="Login Illustration"
-            className="w-full h-full object-cover"
+            className="absolute w-full h-full object-cover"
           />
         </div>
+        {/* //object-cover makes sure the image covers the entire div without distortion */}
+        {error && (
+  <p className="text-red-500 text-sm mt-2 text-center">
+    {error.message || error}
+  </p>
+)}
+
+
       </div>
     </div>
   );
