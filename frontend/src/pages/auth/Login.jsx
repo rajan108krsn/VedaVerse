@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { loginUser } from "../../features/auth/authSlice";
 import { useNavigate } from "react-router-dom";
-
+import {image} from "../../assets/image1.jpeg"
 export default function Login() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -90,8 +90,8 @@ export default function Login() {
 
         {/* RIGHT - IMAGE */}
         <div className="hidden md:block">
-          <img
-            src="https://illustrations.popsy.co/green/farming.svg"
+          <img 
+            src={image}
             alt="Login Illustration"
             className="w-full h-full object-cover"
           />
