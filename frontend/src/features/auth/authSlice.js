@@ -14,7 +14,7 @@ export const loginUser = createAsyncThunk(
       return rejectWithValue(error.response.data);
     }
   }
-)
+);
 export const registerUser = createAsyncThunk(
   "auth/registerUser",
   async (data, { rejectWithValue }) => {
@@ -26,7 +26,20 @@ export const registerUser = createAsyncThunk(
     }
   }
 );
-;
+
+// export const fetchUserProfile = createAsyncThunk(
+//   "auth/me",
+//   async (data,{rejectWithValue}) =>{
+//     try{
+//       const response = await fetchUserProfileApi(data);
+//       return response;
+//     }
+//     catch(error){
+//       return rejectWithValue(error.response.data);
+//     }
+//   }
+// );
+
 const authSlice = createSlice({
   name: "auth",
   initialState: {
@@ -43,9 +56,12 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
       state.error = null;
     },
+    setAccessToken: (state, action) => {
+      state.token = action.payload;
+    },
   },
   // builder(obj hote hain) = action listener + state updater tool isme addCase() method hot hai jisse thunk ke actions ko handle kar sakte hain
-  extraReducers: (builder) => { 
+  extraReducers: (builder) => {
     builder
       .addCase(loginUser.pending, (state) => {
         //jab login user action dispatch hota hai to loading true kar do
@@ -69,7 +85,7 @@ const authSlice = createSlice({
       })
       .addCase(registerUser.fulfilled, (state, action) => {
         state.loading = false;
-        state.token = action.payload.token;
+        state.token = action.payload.accessToken;
         state.user = action.payload.user;
         state.isAuthenticated = true;
       })
@@ -80,5 +96,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { logout } = authSlice.actions;
+export const { logout, setAccessToken } = authSlice.actions;
 export default authSlice.reducer;

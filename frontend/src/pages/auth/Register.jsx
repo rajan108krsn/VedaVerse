@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { registerUser } from "../../features/auth/authSlice";
 import { useNavigate } from "react-router-dom";
 
-function Register() {
+export default function Register() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -80,5 +80,3 @@ function Register() {
     </div>
   );
 }
-
-export default Register;

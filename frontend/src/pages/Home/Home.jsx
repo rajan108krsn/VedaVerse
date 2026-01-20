@@ -1,9 +1,20 @@
-import React from 'react'
+import { useSelector } from "react-redux";
 
-function Home() {
+export default function Home() {
+  const { user } = useSelector((state) => state.auth);
+
   return (
-    <div>Home</div>
-  )
-}
+    <div style={{ padding: "20px" }}>
+      <h1>Home</h1>
 
-export default Home
+      <p><strong>Welcome:</strong> {user?.name}</p>
+      <p><strong>Email:</strong> {user?.email}</p>
+      <p><strong>Role:</strong> {user?.role}</p>
+
+      <hr />
+
+      <p>✅ Login working</p>
+      <p>✅ Auth state accessible</p>
+    </div>
+  );
+}

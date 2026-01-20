@@ -12,3 +12,8 @@ export const registerUserApi = async (data) => {
   console.log(response);
   return response.data;
 };
+
+// export const fetchUserProfileApi = async (data) =>{
+//   const response = await api.get('/auth/me',data);
+//   return response.data;
+// }

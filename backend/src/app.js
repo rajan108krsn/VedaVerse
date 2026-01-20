@@ -17,6 +17,7 @@ app.use(express.json());
 app.use(
   cors({
     origin: true,
+    // origin: true,
     credentials: true,               // 🔥 cookies allow
   })
 );
@@ -32,4 +33,5 @@ app.use("/api/temples", templeRoutes);
 app.use("/api/bhaktas", bhaktaRoutes);
 app.use("/api/community", communityRoutes);
 app.use(globalErrorHandler);
+
 export default app;
