@@ -1,22 +1,22 @@
 import axios from "axios";
-import store from "../app/store";
+import { store } from "../app/store";
 import { setAccessToken, logout } from "../features/auth/authSlice";
 
 const axiosInstance = axios.create({
-  baseURL: "http://localhost:5000/api",
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
   withCredentials: true,
 });
 
-// attach access token
+// Attach access token to requests
 axiosInstance.interceptors.request.use((config) => {
-  const token = store.getState().auth.accessToken;
+  const token = store.getState().auth.token;
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
 
-// refresh on 401
+// Auto-refresh token on 401
 axiosInstance.interceptors.response.use(
   (res) => res,
   async (error) => {
@@ -25,20 +25,22 @@ axiosInstance.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       try {
+        const baseURL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
         const res = await axios.post(
-          "http://localhost:5000/api/auth/refresh",
+          `${baseURL}/auth/refresh-token`,
           {},
           { withCredentials: true }
         );
 
-        store.dispatch(setAccessToken(res.data.accessToken));
+        const newToken = res.data.data?.accessToken || res.data.accessToken;
+        store.dispatch(setAccessToken(newToken));
 
-        originalRequest.headers.Authorization =
-          `Bearer ${res.data.accessToken}`;
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
 
         return axiosInstance(originalRequest);
       } catch (err) {
         store.dispatch(logout());
+        return Promise.reject(err);
       }
     }
     return Promise.reject(error);

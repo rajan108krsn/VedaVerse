@@ -5,12 +5,9 @@ export const loginUser = createAsyncThunk(
   "auth/loginUser",
   async (data, { rejectWithValue }) => {
     try {
-      console.log("Dispatching login with data:", data);
       const response = await loginUserApi(data);
-      console.log("Login response:", response);
       return response;
     } catch (error) {
-      console.log("Login error:", error);
       return rejectWithValue(error.response.data);
     }
   }
@@ -26,19 +23,6 @@ export const registerUser = createAsyncThunk(
     }
   }
 );
-
-// export const fetchUserProfile = createAsyncThunk(
-//   "auth/me",
-//   async (data,{rejectWithValue}) =>{
-//     try{
-//       const response = await fetchUserProfileApi(data);
-//       return response;
-//     }
-//     catch(error){
-//       return rejectWithValue(error.response.data);
-//     }
-//   }
-// );
 
 const authSlice = createSlice({
   name: "auth",

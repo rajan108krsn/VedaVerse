@@ -1,35 +1,24 @@
-
-console.log("SERVER FILE LOADED");
-
 process.on("uncaughtException", (err) => {
   console.error("UNCAUGHT EXCEPTION 💥", err);
+  process.exit(1);
 });
 
 process.on("unhandledRejection", (err) => {
   console.error("UNHANDLED PROMISE 💥", err);
+  process.exit(1);
 });
 
-import express from "express";
 import dotenv from "dotenv";
-import cors from "cors";
+import app from "./app.js";
+import connectDB from "./config/db.js";
 
 dotenv.config();
 
-const app = express();
-
-app.use(cors({
-  origin: "http://localhost:5173",
-  credentials: true,
-}));
-
-app.use(express.json());
-
-app.get("/log", (req, res) => {
-  res.send("API WORKING");
-});
+// Connect to MongoDB
+connectDB();
 
 const PORT = process.env.PORT || 8000;
 
 app.listen(PORT, () => {
-  console.log(`SERVER RUNNING ON PORT ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });

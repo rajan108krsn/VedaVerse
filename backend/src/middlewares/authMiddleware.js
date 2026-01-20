@@ -10,19 +10,13 @@ export const protect = (req, res, next) => {
   }
 
   const token = authHeader.split(" ")[1];
-  console.log(authHeader);
-  console.log("             ")
-  console.log(token);
-
 
   try {
     const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-    console.log(decoded)
     req.user = {
-    id: decoded.id,
-    role: decoded.role
+      id: decoded.id,
+      role: decoded.role
     };
-    console.log("protect mein");
     next();
   } catch (error) {
     return res.status(401).json({ message: "Invalid or expired access token" });
