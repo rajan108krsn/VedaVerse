@@ -3,17 +3,16 @@ import ApiError from "../utils/apiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import User from "../models/User.js";
 import jwt from "jsonwebtoken";
-import dotenv from 'dotenv'
-import ms from 'ms'
+import dotenv from "dotenv";
+import ms from "ms";
 import crypto from "crypto";
 import sendEmail from "../utils/email.js";
 dotenv.config();
 
-
-
 export const registerUser = catchAsync(async (req, res) => {
+  console.log("REGISTER REQ BODY:", req.body);
   const { name, email, password, role, mobileno } = req.body;
-
+  console.log("REGISTER REQ BODY:", req.body);
   const existingUser = await User.findOne({
     $or: [{ email }, { mobileno }],
   });
@@ -33,19 +32,18 @@ export const registerUser = catchAsync(async (req, res) => {
   const accessToken = user.generateAccessToken();
   const refreshToken = user.generateRefreshToken();
 
-  // save refresh token in DB
+  // save refresh token in DB (raw token, NOT hashed - consistent with loginUser)
   user.refreshToken = refreshToken;
   await user.save({ validateBeforeSave: false });
 
   // refresh token → httpOnly cookie
   res.cookie("refreshToken", refreshToken, {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
-  maxAge: ms(process.env.REFRESH_TOKEN_EXPIRY),
-  path: "/api/auth",
-});
-
+    httpOnly: true,
+    secure: false,
+    sameSite: "lax",
+    maxAge: ms(process.env.REFRESH_TOKEN_EXPIRY),
+    path: "/",
+  });
 
   return res.status(201).json(
     new ApiResponse(201, "User registered successfully", {
@@ -58,43 +56,63 @@ export const registerUser = catchAsync(async (req, res) => {
         role: user.role,
         active: user.active,
       },
-    })
+    }),
   );
 });
 
 export const loginUser = catchAsync(async (req, res) => {
+  console.log("LOGIN CONTROLLER HIT");
   const { email, password } = req.body;
+  // console.log("LOGIN REQ BODY:", req.body);
 
   const user = await User.findOne({ email }).select("+password");
   if (!user) {
-    throw new ApiError(401, "Invalid email or password");
+    return res.status(401).json({
+      success: false,
+      message: "Invalid email or password",
+    });
   }
 
-  const isPasswordCorrect = await user.comparePass(password);
-  if (!isPasswordCorrect) {
-    throw new ApiError(401, "Invalid email or password");
+  // 2️⃣ Compare password ONLY if user exists
+  const isMatch = await user.comparePass(password);
+
+  if (!isMatch) {
+    return res.status(401).json({
+      success: false,
+      message: "Invalid email or password",
+    });
   }
 
   const accessToken = user.generateAccessToken();
   const refreshToken = user.generateRefreshToken();
 
-  // save refresh token
+  console.log(
+    "✅ Login: Generated refreshToken:",
+    refreshToken.substring(0, 20) + "...",
+  );
+
+  // save refresh token in DB (raw token, like registerUser)
   user.refreshToken = refreshToken;
   await user.save({ validateBeforeSave: false });
 
-  // cookie
+  console.log("✅ Login: Saved to DB");
+
+  // Immediately set new refresh token cookie (this replaces any old one)
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
-    secure: true,
-    sameSite: "strict",
-    maxAge: ms(process.env.REFRESH_TOKEN_EXPIRY)
+    secure: false,
+    sameSite: "lax",
+    maxAge: ms(process.env.REFRESH_TOKEN_EXPIRY),
+    path: "/",
   });
+
+  console.log("✅ Login: Cookie set with new token");
 
   return res.status(200).json(
     new ApiResponse(200, "Login successful", {
       accessToken,
-      user
-    })
+      user,
+    }),
   );
 });
 
@@ -118,13 +136,11 @@ export const logoutUser = catchAsync(async (req, res) => {
   // Cookie clear karo
   res.clearCookie("refreshToken", {
     httpOnly: true,
-    secure: true,     // production me true
+    secure: true, // production me true
     sameSite: "strict",
   });
 
-  return res
-    .status(200)
-    .json(new ApiResponse(200, "Logged out successfully"));
+  return res.status(200).json(new ApiResponse(200, "Logged out successfully"));
 });
 
 export const getMe = catchAsync(async (req, res) => {
@@ -140,12 +156,18 @@ export const getMe = catchAsync(async (req, res) => {
   return res.status(200).json(
     new ApiResponse(200, "User fetched successfully", {
       user,
-    })
+    }),
   );
 });
 
 export const refreshAccessToken = catchAsync(async (req, res) => {
+  console.log("🍪 Refresh token HIT");
   const incomingRefreshToken = req.cookies?.refreshToken;
+
+  console.log(
+    "🍪 Incoming cookie token:",
+    incomingRefreshToken?.substring(0, 20) + "...",
+  );
 
   if (!incomingRefreshToken) {
     throw new ApiError(401, "Refresh token missing");
@@ -156,14 +178,19 @@ export const refreshAccessToken = catchAsync(async (req, res) => {
   try {
     decoded = jwt.verify(
       incomingRefreshToken,
-      process.env.REFRESH_TOKEN_SECRET
+      process.env.REFRESH_TOKEN_SECRET,
     );
   } catch (err) {
     throw new ApiError(401, "Invalid or expired refresh token");
   }
 
   const user = await User.findById(decoded.id);
+
+  // check if refresh token matches the one in DB
   if (!user || user.refreshToken !== incomingRefreshToken) {
+    console.log("❌ Token Mismatch!");
+    console.log("   DB full:", user?.refreshToken);
+    console.log("   Request full:", incomingRefreshToken);
     throw new ApiError(403, "Refresh token mismatch");
   }
 
@@ -175,31 +202,18 @@ export const refreshAccessToken = catchAsync(async (req, res) => {
   await user.save({ validateBeforeSave: false });
 
   // set new refresh token cookie
-  //   res.cookies() --Server browser ko bol raha hai
-  // “Ye cookie rakh lo”
-
-  res.cookie("refreshToken", refreshToken, {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
-  maxAge: ms(process.env.REFRESH_TOKEN_EXPIRY),
-  path: "/api/auth",
-});
-
-  // res.cookie("refreshToken", newRefreshToken, {
-  //   httpOnly: true, 
-  //           // javaScript se access nahi hoga:
-  //   secure: true, 
-  //           //  Cookie sirf HTTPS pe hi jayegi
-  //   sameSite: "strict", 
-  //            // Cookie dusri websites ke request pe nahi jayegi
-  //   maxAge: ms(process.env.REFRESH_TOKEN_EXPIRY)
-  // });
+  res.cookie("refreshToken", newRefreshToken, {
+    httpOnly: true,
+    secure: false,
+    sameSite: "lax",
+    maxAge: ms(process.env.REFRESH_TOKEN_EXPIRY),
+    path: "/",
+  });
 
   return res.status(200).json(
     new ApiResponse(200, "Access token refreshed", {
       accessToken: newAccessToken,
-    })
+    }),
   );
 });
 
@@ -227,7 +241,6 @@ export const changePassword = catchAsync(async (req, res) => {
     .json(new ApiResponse(200, "Password changed successfully"));
 });
 
-
 export const forgotPassword = catchAsync(async (req, res) => {
   const { email } = req.body;
 
@@ -242,7 +255,7 @@ export const forgotPassword = catchAsync(async (req, res) => {
   const resetToken = user.createPasswordResetToken();
   await user.save({ validateBeforeSave: false });
   const resetUrl = `${req.protocol}://${req.get(
-    "host"
+    "host",
   )}/api/auth/reset-password/${resetToken}`;
   console.log(resetUrl);
 
@@ -256,40 +269,34 @@ This link will expire in 10 minutes.
 
 If you did not request this, please ignore this email.
 `;
-// sendEmail(...) temporarily skipped
+  // sendEmail(...) temporarily skipped
 
-console.log("RESET LINK:", resetUrl);
+  console.log("RESET LINK:", resetUrl);
 
-return res
-  .status(200)
-  .json(
-    new ApiResponse(200, "Password reset link generated")
-  );
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "Password reset link generated"));
 
+  //   try {
+  //     await sendEmail({
+  //       email: user.email,
+  //       subject: "Password Reset Request - VedaVerse",
+  //       message,
+  //     });
 
-//   try {
-//     await sendEmail({
-//       email: user.email,
-//       subject: "Password Reset Request - VedaVerse",
-//       message,
-//     });
+  //     return res
+  //       .status(200)
+  //       .json(new ApiResponse(200, "Password reset link sent to email"));
+  //   } catch (error) {
+  //   console.error("EMAIL ERROR 👉", error); // 👈 ADD THIS
 
-//     return res
-//       .status(200)
-//       .json(new ApiResponse(200, "Password reset link sent to email"));
-//   } catch (error) {
-//   console.error("EMAIL ERROR 👉", error); // 👈 ADD THIS
+  //   user.resetPasswordToken = undefined;
+  //   user.resetPasswordExpire = undefined;
+  //   await user.save({ validateBeforeSave: false });
 
-//   user.resetPasswordToken = undefined;
-//   user.resetPasswordExpire = undefined;
-//   await user.save({ validateBeforeSave: false });
-
-//   throw new ApiError(500, "Email could not be sent");
-// }
-
+  //   throw new ApiError(500, "Email could not be sent");
+  // }
 });
-
-
 
 export const resetPassword = catchAsync(async (req, res) => {
   const { token } = req.params;
@@ -299,10 +306,7 @@ export const resetPassword = catchAsync(async (req, res) => {
     throw new ApiError(400, "New password is required");
   }
 
-  const hashedToken = crypto
-    .createHash("sha256")
-    .update(token)
-    .digest("hex");
+  const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
   const user = await User.findOne({
     resetPasswordToken: hashedToken,
@@ -329,4 +333,3 @@ export const resetPassword = catchAsync(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, "Password reset successful"));
 });
-

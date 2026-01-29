@@ -6,10 +6,11 @@ import { changePassword } from "../controllers/authController.js";
 const router = express.Router();
 
 router.post('/register', validate.registerInput, registerUser);
-router.post('/login', validate.loginInput, loginUser);
+router.post('/login', loginUser);
 router.post('/logout', protect, logoutUser);
 
 router.post("/refresh-token", refreshAccessToken);
+
 router.get("/me", protect, getMe);
 router.patch("/update-password", protect, changePassword);
 

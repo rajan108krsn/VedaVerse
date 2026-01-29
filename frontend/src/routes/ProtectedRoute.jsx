@@ -2,18 +2,18 @@ import { Navigate, Outlet } from "react-router-dom";
 import { useSelector } from "react-redux";
 
 export default function ProtectedRoute() {
-  const { token, loading } = useSelector((state) => state.auth);
+  const { isAuthenticated, loading } = useSelector(
+    (state) => state.auth
+  );
 
-  // jab tak auth decide ho raha hai
-  if (loading) {
-    return <div>Loading...</div>;
-  }
+  // ⛔ Jab tak login API chal rahi hai, decision mat lo
+  if (loading) return null;
 
-  // agar login nahi hai
-  if (!token) {
+  // ❌ Login nahi hai → login page
+  if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  // login hai → page allow
+  // ✅ Login ho chuka → andar jaane do
   return <Outlet />;
 }

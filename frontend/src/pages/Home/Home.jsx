@@ -1,20 +1,20 @@
-import { useSelector } from "react-redux";
-
+import HeroSection from "./HeroSection.jsx";
+import QuickNav from "./QuickNav";
+import Overview from "./Overview.jsx";
+import GeetaShloka from "./GeetaShloka";
+import Query from "./Query.jsx";
+import Navbar from "./Navbar.jsx";
+import FinalSection from "./FinalSection.jsx";
 export default function Home() {
-  const { user } = useSelector((state) => state.auth);
-
   return (
-    <div style={{ padding: "20px" }}>
-      <h1>Home</h1>
-
-      <p><strong>Welcome:</strong> {user?.name}</p>
-      <p><strong>Email:</strong> {user?.email}</p>
-      <p><strong>Role:</strong> {user?.role}</p>
-
-      <hr />
-
-      <p>✅ Login working</p>
-      <p>✅ Auth state accessible</p>
+    <div className="main-bg w-full">
+      <Navbar />
+      <HeroSection />
+      <QuickNav />
+      <Overview />
+      <GeetaShloka />
+      <Query />
+      <FinalSection />
     </div>
   );
 }

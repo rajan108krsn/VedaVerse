@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { loginUserApi, registerUserApi } from "./authApi";
-
+import { setToken, clearToken } from "../../services/tokenService";
+import axiosInstance from "../../services/axiosInstance";
 export const loginUser = createAsyncThunk(
   "auth/loginUser",
   async (data, { rejectWithValue }) => {
@@ -10,7 +11,7 @@ export const loginUser = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(error.response.data);
     }
-  }
+  },
 );
 export const registerUser = createAsyncThunk(
   "auth/registerUser",
@@ -21,7 +22,25 @@ export const registerUser = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(error.response.data);
     }
-  }
+  },
+);
+
+export const restoreAuth = createAsyncThunk(
+  "auth/restore",
+  async (_, { rejectWithValue }) => {
+    try {
+      console.log("🚀 restoreAuth THUNK CALLED");
+      const res = await axiosInstance.post(
+        "/auth/refresh-token",
+        {},
+        { withCredentials: true },
+      );
+
+      return res.data;
+    } catch (err) {
+      return rejectWithValue(null);
+    }
+  },
 );
 
 const authSlice = createSlice({
@@ -31,6 +50,7 @@ const authSlice = createSlice({
     user: null,
     isAuthenticated: false,
     loading: false,
+    bootstrapping: true, // 👈 NEW
     error: null,
   },
   reducers: {
@@ -44,7 +64,9 @@ const authSlice = createSlice({
       state.token = action.payload;
     },
   },
+
   // builder(obj hote hain) = action listener + state updater tool isme addCase() method hot hai jisse thunk ke actions ko handle kar sakte hain
+
   extraReducers: (builder) => {
     builder
       .addCase(loginUser.pending, (state) => {
@@ -56,7 +78,7 @@ const authSlice = createSlice({
       .addCase(loginUser.fulfilled, (state, action) => {
         state.loading = false;
         state.token = action.payload.accessToken;
-        state.user = action.payload.user;
+        setToken(action.payload.accessToken); // 🔥 important
         state.isAuthenticated = true;
       })
       .addCase(loginUser.rejected, (state, action) => {
@@ -76,6 +98,23 @@ const authSlice = createSlice({
       .addCase(registerUser.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+      .addCase(restoreAuth.pending, (state) => {
+        state.loading = true;
+        state.bootstrapping = true;
+      })
+      .addCase(restoreAuth.fulfilled, (state, action) => {
+        state.loading = false;
+        state.bootstrapping = false;
+        state.token = action.payload.accessToken;
+        state.isAuthenticated = true;
+      })
+      .addCase(restoreAuth.rejected, (state) => {
+        state.loading = false;
+        state.bootstrapping = false;
+        state.token = null;
+        state.isAuthenticated = false;
+        clearToken();
       });
   },
 });
